@@ -137,15 +137,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-neutral-700 mb-4">Share a File</h2>
       
-      {!isAuthenticated && (
-        <Alert variant="warning" className="mb-4 bg-yellow-50 border-l-4 border-yellow-400">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription>
-            Please login with your Google account to upload files.
-          </AlertDescription>
-        </Alert>
-      )}
+      
       
       <div className="bg-white rounded-lg shadow-md p-6">
         {!file ? (
