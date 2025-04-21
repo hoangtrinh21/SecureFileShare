@@ -15,7 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Run Java Backend"
+runButton = "Dev Frontend"
 
 [[workflows.workflow]]
 name = "Project"
@@ -49,3 +49,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd java-backend && ./workflow.sh"
+
+[[workflows.workflow]]
+name = "Dev Frontend"
+author = 39773216
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
