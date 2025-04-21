@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 // Get directory paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const clientBuildPath = join(__dirname, '../client/dist');
+const clientBuildPath = join(__dirname, '../dist/public');
 
 // Middleware
 app.use(express.json());
