@@ -11,9 +11,10 @@ export default function Navbar() {
   const { toast } = useToast();
 
   const googleLogin = useGoogleLogin({
-    onSuccess: async (response) => {
+    flow: 'auth-code',
+    onSuccess: async (codeResponse) => {
       try {
-        await login(response.access_token);
+        await login(codeResponse.code);
         toast({
           title: "Login successful",
           description: "You are now logged in",

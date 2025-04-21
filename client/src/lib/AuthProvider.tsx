@@ -54,9 +54,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
-  const login = async (credential: string) => {
+  const login = async (code: string) => {
     try {
-      const response = await apiRequest("POST", "/api/auth/google", { credential });
+      const response = await apiRequest("POST", "/api/auth/google", { code });
       const userData = await response.json();
       setUser(userData);
     } catch (error) {
