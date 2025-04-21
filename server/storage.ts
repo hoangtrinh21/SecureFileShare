@@ -1,4 +1,6 @@
-import { User, InsertUser, File, FailedAttempt } from "@shared/schema";
+import { User, InsertUser, File, FailedAttempt, users, files, failedAttempts } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, lt, gt } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -23,142 +25,126 @@ export interface IStorage {
   resetFailedAttempts(ip: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private files: Map<number, File>;
-  private failedAttempts: Map<string, FailedAttempt>;
-  private nextFileId: number;
-  private nextFailedAttemptId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.files = new Map();
-    this.failedAttempts = new Map();
-    this.nextFileId = 1;
-    this.nextFailedAttemptId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUserById(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const result = await db.select().from(users).where(eq(users.email, email));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const newUser: User = {
-      ...user,
-      createdAt: new Date(),
-    };
-    this.users.set(user.id, newUser);
-    return newUser;
+    const result = await db.insert(users).values(user).returning();
+    return result[0];
   }
 
   // File operations
   async createFile(file: Omit<File, "id" | "createdAt">): Promise<File> {
-    const id = this.nextFileId++;
-    const newFile: File = {
-      ...file,
-      id,
-      createdAt: new Date(),
-    };
-    this.files.set(id, newFile);
-    return newFile;
+    const result = await db.insert(files).values(file).returning();
+    return result[0];
   }
 
   async getFileById(id: number): Promise<File | undefined> {
-    return this.files.get(id);
+    const result = await db.select().from(files).where(eq(files.id, id));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async getFileByConnectionCode(code: string): Promise<File | undefined> {
-    return Array.from(this.files.values()).find(
-      (file) => file.connectionCode === code,
-    );
+    const result = await db.select().from(files).where(eq(files.connectionCode, code));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async getActiveFileCount(): Promise<number> {
-    return Array.from(this.files.values()).filter(
-      (file) => 
-        file.status === "WAITING_FOR_DOWNLOAD" && 
-        (!file.expiresAt || new Date() < new Date(file.expiresAt))
-    ).length;
+    const now = new Date();
+    const result = await db
+      .select({ count: { _count: files.id } })
+      .from(files)
+      .where(
+        and(
+          eq(files.status, "WAITING_FOR_DOWNLOAD"),
+          gt(files.expiresAt, now)
+        )
+      );
+    
+    return result.length > 0 ? Number(result[0].count._count) : 0;
   }
 
   async updateFileDownloadUrl(id: number, url: string, expiresAt: Date): Promise<void> {
-    const file = this.files.get(id);
-    if (file) {
-      file.downloadUrl = url;
-      file.downloadExpiresAt = expiresAt;
-      this.files.set(id, file);
-    }
+    await db
+      .update(files)
+      .set({
+        downloadUrl: url,
+        downloadExpiresAt: expiresAt
+      })
+      .where(eq(files.id, id));
   }
 
   async updateFileStatus(id: number, status: string): Promise<void> {
-    const file = this.files.get(id);
-    if (file) {
-      file.status = status;
-      this.files.set(id, file);
-    }
+    await db
+      .update(files)
+      .set({ status })
+      .where(eq(files.id, id));
   }
 
   // Failed attempts operations
   async getFailedAttempt(ip: string): Promise<FailedAttempt | undefined> {
-    return this.failedAttempts.get(ip);
+    const result = await db.select().from(failedAttempts).where(eq(failedAttempts.ip, ip));
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async createFailedAttempt(data: Omit<FailedAttempt, "id">): Promise<FailedAttempt> {
-    const id = this.nextFailedAttemptId++;
-    const record: FailedAttempt = { ...data, id };
-    this.failedAttempts.set(data.ip, record);
-    return record;
+    const result = await db.insert(failedAttempts).values(data).returning();
+    return result[0];
   }
 
   async updateFailedAttempts(ip: string, attempts: number, lastAttemptAt: Date): Promise<FailedAttempt> {
-    let record = this.failedAttempts.get(ip);
+    const existingAttempt = await this.getFailedAttempt(ip);
     
-    if (!record) {
-      return this.createFailedAttempt({ 
-        ip, 
-        attempts, 
+    if (!existingAttempt) {
+      return this.createFailedAttempt({
+        ip,
+        attempts,
         lastAttemptAt,
-        timeoutDuration: 0,
+        timeoutDuration: 0
       });
     }
     
-    record = {
-      ...record,
-      attempts,
-      lastAttemptAt,
-    };
+    await db
+      .update(failedAttempts)
+      .set({
+        attempts,
+        lastAttemptAt
+      })
+      .where(eq(failedAttempts.ip, ip));
     
-    this.failedAttempts.set(ip, record);
-    return record;
+    const updated = await this.getFailedAttempt(ip);
+    return updated!;
   }
 
   async setFailedAttemptTimeout(ip: string, timeoutUntil: Date, timeoutDuration: number): Promise<void> {
-    const record = this.failedAttempts.get(ip);
-    
-    if (record) {
-      record.timeoutUntil = timeoutUntil;
-      record.timeoutDuration = timeoutDuration;
-      this.failedAttempts.set(ip, record);
-    }
+    await db
+      .update(failedAttempts)
+      .set({
+        timeoutUntil,
+        timeoutDuration
+      })
+      .where(eq(failedAttempts.ip, ip));
   }
 
   async resetFailedAttempts(ip: string): Promise<void> {
-    const record = this.failedAttempts.get(ip);
-    
-    if (record) {
-      record.attempts = 0;
-      record.timeoutUntil = undefined;
-      record.timeoutDuration = 0;
-      this.failedAttempts.set(ip, record);
-    }
+    await db
+      .update(failedAttempts)
+      .set({
+        attempts: 0,
+        timeoutUntil: null,
+        timeoutDuration: 0
+      })
+      .where(eq(failedAttempts.ip, ip));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
