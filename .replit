@@ -57,4 +57,13 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd client && npm run dev"
+args = "cd client && npm install && npm run dev"
+
+[[workflows.workflow]]
+name = "Dev Backend"
+author = 39773216
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npm run dev"
