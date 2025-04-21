@@ -8,8 +8,7 @@ const redirectUri = window.location.origin;
 
 createRoot(document.getElementById("root")!).render(
   <GoogleOAuthProvider 
-    clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""} 
-    redirectUri={redirectUri}
+    clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}
   >
     <App />
   </GoogleOAuthProvider>
