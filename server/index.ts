@@ -22,6 +22,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/api/auth/me', (req, res) => {
+  // Get user info from headers
+  const userId = req.headers['x-replit-user-id'];
+  const userName = req.headers['x-replit-user-name'];
+  const userRoles = req.headers['x-replit-user-roles'];
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  res.json({
+    id: userId,
+    name: userName,
+    roles: userRoles
+  });
+});
+
 // Serve frontend for all other routes
 app.get('*', (req, res) => {
   res.sendFile(join(clientBuildPath, 'index.html'));
