@@ -1,11 +1,13 @@
 
-import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set");
-}
+const pool = new Pool({
+  host: '0.0.0.0',
+  port: 5432,
+  user: 'postgres',
+  password: 'postgres',
+  database: 'postgres'
+});
 
-// Create connection pool
-const pool = mysql.createPool(process.env.DATABASE_URL);
-
-export { pool };
+export const db = drizzle(pool);
