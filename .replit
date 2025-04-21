@@ -15,7 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Dev Frontend"
+runButton = "Dev Backend"
 
 [[workflows.workflow]]
 name = "Project"
@@ -66,4 +66,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && npm run dev"
+args = "cd client && npm run build && cd .. && npm install && npm run dev"
