@@ -107,10 +107,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     e.preventDefault();
     setIsDragging(false);
     
-    if (!isAuthenticated) {
-      setError("Please login to upload files");
-      return;
-    }
+    // if (!isAuthenticated) {
+    //   setError("Please login to upload files");
+    //   return;
+    // }
     
     const droppedFile = e.dataTransfer.files[0];
     if (!droppedFile) return;
